@@ -1,8 +1,5 @@
-"""PhishArms — a clean, single-page dashboard built for non-technical viewers.
-
-Card-based, guided flow: paste an email → get a clear verdict with plain-language
-reasons → watch the Red-team attacker try (and usually fail) to fool the hardened
-detector → see how the model improved over the arms race. No jargon, no clutter.
+"""PhishArms — self-evolving phishing defense dashboard.
+Clean, card-based, with live attacker simulation and vibrant UI.
 """
 
 from __future__ import annotations
@@ -18,36 +15,71 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # for gmail_scan
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from phisharms.attacker import RedTeam  # noqa: E402
 from phisharms.detector import PhishingDetector  # noqa: E402
 from phisharms.features import _SPAM_KEYWORDS, _URGENCY_WORDS, extract_features  # noqa: E402
 
 GITHUB_URL = "https://github.com/Muskan-2504/phishing-arms-race"
-RED, GREEN, AMBER, INK = "#D64550", "#2A9D8F", "#F79009", "#111827"
 
-st.set_page_config(page_title="PhishArms", page_icon="🛡️", layout="wide")
+# 🎨 VIBRANT COLOR PALETTE
+DANGER = "#DC2626"      # bright red for phishing
+SUCCESS = "#10B981"     # emerald green for legit
+WARNING = "#F59E0B"     # amber for medium risk
+PRIMARY = "#6366F1"     # indigo for buttons
+SECONDARY = "#8B5CF6"   # purple for accents
+DARK = "#1E293B"        # slate for text
+CARD_BG = "#FFFFFF"     # white cards
+ACCENT_1 = "#EC4899"    # pink for attacker section
+ACCENT_2 = "#06B6D4"    # cyan for track record
+ACCENT_3 = "#F97316"    # orange for quick tests
+
+st.set_page_config(page_title="PhishArms | Self-Evolving Phishing Defense", page_icon="🛡️", layout="wide")
 
 st.markdown(
     f"""
     <style>
       #MainMenu, header, footer {{visibility: hidden;}}
-      .block-container {{padding-top: 1.6rem; max-width: 1080px;}}
-      h1, h2, h3 {{color: {INK};}}
-      /* native bordered containers -> soft cards */
+      .block-container {{padding-top: 1.2rem; max-width: 1200px;}}
+      h1, h2, h3, p {{color: {DARK};}}
+
+      /* Card styling */
       div[data-testid="stVerticalBlockBorderWrapper"] {{
-        border-radius: 14px !important; border-color:#E6E9EF !important;
-        box-shadow: 0 1px 3px rgba(16,24,40,.04); padding:.35rem;}}
-      .brand {{font-size: 1.9rem; font-weight: 800; letter-spacing:-.02em; margin:0;}}
-      .tagline {{color:#6B7280; margin:.15rem 0 0 0; font-size:1.02rem;}}
-      .step {{font-size:.78rem; font-weight:700; letter-spacing:.06em; color:#9098A4; text-transform:uppercase;}}
-      .verdict {{padding:1.1rem 1.3rem; border-radius:12px; font-weight:800; font-size:1.45rem; color:#fff;}}
-      .pill {{display:inline-block; padding:.18rem .7rem; border-radius:999px; font-size:.8rem; font-weight:700;}}
-      .meter {{height:18px; width:100%; background:#EEF1F6; border-radius:999px; overflow:hidden; margin-top:.3rem;}}
-      .meter-fill {{height:100%; border-radius:999px;}}
-      .reason {{padding:.5rem 0; border-bottom:1px solid #F0F2F5;}}
-      .reason b {{color:{INK};}} .reason span {{color:#6B7280; font-size:.9rem;}}
-      .foot {{color:#9098A4; font-size:.85rem; text-align:center; margin-top:1.4rem;}}
+        border-radius: 20px !important;
+        border: none !important;
+        background: {CARD_BG} !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03) !important;
+        padding: 0.5rem 1rem 1rem 1rem !important;
+      }}
+
+      .brand {{font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, {PRIMARY}, {SECONDARY}); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin:0;}}
+      .tagline {{color:#64748B; margin-top:-0.2rem; font-size:0.95rem;}}
+      .step {{font-size:0.7rem; font-weight:600; letter-spacing:0.05em; color:{PRIMARY}; text-transform:uppercase; margin-bottom:0.2rem;}}
+
+      /* Verdict cards */
+      .verdict {{padding:1rem 1.2rem; border-radius:16px; font-weight:700; font-size:1.3rem; color:white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);}}
+      .phishing-verdict {{background: linear-gradient(135deg, {DANGER}, #EF4444);}}
+      .legit-verdict {{background: linear-gradient(135deg, {SUCCESS}, #34D399);}}
+
+      .pill {{display:inline-block; padding:0.2rem 0.8rem; border-radius:999px; font-size:0.7rem; font-weight:600;}}
+      .pill-high {{background: {DANGER}20; color: {DANGER};}}
+      .pill-med {{background: {WARNING}20; color: {WARNING};}}
+      .pill-low {{background: {SUCCESS}20; color: {SUCCESS};}}
+
+      .meter {{height:10px; width:100%; background:#E2E8F0; border-radius:999px; overflow:hidden; margin:0.3rem 0 0.5rem 0;}}
+      .meter-fill {{height:100%; border-radius:999px; transition: width 0.3s ease;}}
+
+      .reason {{padding:0.5rem 0; border-bottom:1px solid #F1F5F9;}}
+      .reason b {{color:{DARK}; font-size:0.85rem;}}
+      .reason span {{color:#64748B; font-size:0.75rem;}}
+
+      .foot {{color:#94A3B8; font-size:0.7rem; text-align:center; margin-top:1.5rem;}}
+
+      /* Metric cards */
+      .metric-card {{background: linear-gradient(135deg, {ACCENT_2}10, {PRIMARY}05); border-radius: 16px; padding: 0.8rem; text-align: center;}}
+      .metric-value {{font-size: 1.8rem; font-weight: 800; color: {PRIMARY};}}
+      .metric-label {{font-size: 0.7rem; color: #64748B;}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -79,6 +111,13 @@ SAFE_SAMPLE = (
     "Let's regroup on Thursday to finalise the timeline. Thanks, Priya"
 )
 
+QUICK_TESTS = [
+    ("💳 Bank scam", "Your Wells Fargo account is locked. Verify now: http://bit.ly/wells-fargo"),
+    ("📦 Package", "UPS: confirm your address for delivery: http://tinyurl.com/ups-delivery"),
+    ("💰 IRS refund", "You have a tax refund pending. Click here to claim: http://bit.ly/irs-refund"),
+    ("🎁 Gift card", "Free $100 Amazon gift card! Claim now: http://bit.ly/amazon-gift"),
+]
+
 
 def matched(words, text: str) -> list[str]:
     low = text.lower()
@@ -87,44 +126,42 @@ def matched(words, text: str) -> list[str]:
 
 def reasons_for(text: str) -> list[tuple[str, str]]:
     f = extract_features(text)
-    out: list[tuple[str, str]] = []
+    out = []
     if f["has_url_shortener"]:
-        out.append(("Shortened link (bit.ly, tinyurl…)", "hides the real destination"))
+        out.append(("🔗 Shortened link", "hides the real destination"))
     if f["has_ip_url"]:
-        out.append(("Links to a raw IP address", "real companies use named domains"))
+        out.append(("🌐 Raw IP link", "real companies use named domains"))
     if f["num_links"]:
-        out.append((f"Contains {int(f['num_links'])} link(s)", "phishing wants you to click"))
+        out.append((f"📎 {int(f['num_links'])} link(s)", "phishing wants you to click"))
     urg = matched(_URGENCY_WORDS, text)
     if urg:
-        out.append((f"Urgency language: “{'”, “'.join(urg[:3])}”", "rushes you into a mistake"))
+        out.append((f"⏰ Urgency: “{'”, “'.join(urg[:3])}”", "rushes you into a mistake"))
     spam = matched(_SPAM_KEYWORDS, text)
     if len(spam) >= 2:
-        out.append((f"Credential wording: “{'”, “'.join(spam[:3])}”", "asks you to confirm account details"))
+        out.append((f"⚠️ Keywords: “{'”, “'.join(spam[:3])}”", "asks for account details"))
     if f["leetspeak_score"] >= 2:
-        out.append(("Letters disguised as symbols", "e.g. p@yp4l — dodges filters"))
+        out.append(("🤖 Leetspeak (p@yp4l)", "dodges keyword filters"))
     if f["homoglyph_score"]:
-        out.append(("Look-alike foreign characters", "Cyrillic/Greek letters imitating English"))
+        out.append(("🪄 Look-alike characters", "Cyrillic/Greek imitating English"))
     if f["zero_width_count"]:
-        out.append(("Hidden invisible characters", "inserted to break up flagged words"))
+        out.append(("👻 Hidden invisible chars", "inserted to break up flagged words"))
     if f["capital_ratio"] > 0.30:
-        out.append(("Excessive capital letters", "shouting is common in scams"))
-    if f["has_attachment_hint"]:
-        out.append(("Mentions an attachment", "a frequent malware vector"))
+        out.append(("📢 Excessive capitals", "shouting is common in scams"))
     return out
 
 
-def risk_band(prob: float) -> tuple[str, str]:
+def risk_band(prob: float) -> tuple[str, str, str]:
     if prob >= 0.70:
-        return "High risk", RED
+        return "High risk", DANGER, "pill-high"
     if prob >= 0.40:
-        return "Medium risk", AMBER
-    return "Low risk", GREEN
+        return "Medium risk", WARNING, "pill-med"
+    return "Low risk", SUCCESS, "pill-low"
 
 
-detector, _ = load_detector()
+detector, model_date = load_detector()
 history = load_history()
 
-# ── header ─────────────────────────────────────────────────────────────────
+# Header with gradient
 hl, hr = st.columns([3, 1])
 with hl:
     st.markdown('<p class="brand">🛡️ PhishArms</p>', unsafe_allow_html=True)
@@ -132,137 +169,180 @@ with hl:
                 'beat it — and gets stronger every round.</p>', unsafe_allow_html=True)
 with hr:
     st.write("")
-    st.markdown(f"<div style='text-align:right'><a href='{GITHUB_URL}'>View source on GitHub ↗</a></div>",
+    st.markdown(f"<div style='text-align:right'><a href='{GITHUB_URL}' style='color:{PRIMARY};'>📖 Source on GitHub →</a></div>",
                 unsafe_allow_html=True)
 
 if detector is None:
-    st.warning("No trained model found. Run `python scripts/train_baseline.py` first, then reload.")
+    st.warning("⚠️ No trained model found. Run `python scripts/train_baseline.py` first.")
     st.stop()
 
-st.write("")
-
-# ── step 1: input · track record ─────────────────────────────────────────────
+# Input + Track Record
 col_in, col_eval = st.columns([1.3, 1], gap="large")
 
 with col_in:
     with st.container(border=True):
-        st.markdown('<span class="step">Step 1 — try it</span>', unsafe_allow_html=True)
+        st.markdown(f'<span class="step" style="color:{PRIMARY};">📥 Step 1 — Try it</span>', unsafe_allow_html=True)
         st.markdown("#### Check an email")
+
         if "email_text" not in st.session_state:
             st.session_state.email_text = PHISHING_SAMPLE
+
+        # Colorful buttons
         b1, b2, b3 = st.columns(3)
-        if b1.button("Phishing example", use_container_width=True):
-            st.session_state.email_text = PHISHING_SAMPLE
-        if b2.button("Safe example", use_container_width=True):
-            st.session_state.email_text = SAFE_SAMPLE
-        if b3.button("Clear", use_container_width=True):
-            st.session_state.email_text = ""
-        st.text_area("Email text", key="email_text", height=180, label_visibility="collapsed",
-                     placeholder="Paste the body of an email here…")
+        with b1:
+            st.button("📧 Phishing", use_container_width=True, type="primary" if st.session_state.email_text == PHISHING_SAMPLE else "secondary",
+                     on_click=lambda: st.session_state.update({"email_text": PHISHING_SAMPLE}))
+        with b2:
+            st.button("✅ Safe", use_container_width=True, on_click=lambda: st.session_state.update({"email_text": SAFE_SAMPLE}))
+        with b3:
+            st.button("🗑️ Clear", use_container_width=True, on_click=lambda: st.session_state.update({"email_text": ""}))
+
+        st.text_area("Email body", key="email_text", height=160, label_visibility="collapsed")
+
+        # Quick test buttons with color
+        st.markdown(f"<span style='color:{ACCENT_3}; font-size:0.7rem; font-weight:600;'>⚡ QUICK TESTS</span>", unsafe_allow_html=True)
+        cols = st.columns(4)
+        for col, (label, body) in zip(cols, QUICK_TESTS):
+            if col.button(label, use_container_width=True):
+                st.session_state.email_text = body
+                st.rerun()
+
         analyse = st.button("🔍 Analyse email", type="primary", use_container_width=True)
 
 with col_eval:
     with st.container(border=True):
-        st.markdown('<span class="step">The proof it learns</span>', unsafe_allow_html=True)
+        st.markdown(f'<span class="step" style="color:{ACCENT_2};">📊 Proof it learns</span>', unsafe_allow_html=True)
         st.markdown("#### Detector track record")
         if history:
             c1, c2 = st.columns(2)
-            c1.metric("Beat it at first", f"{history[0]['evasion_rate_before']:.0%}")
-            c2.metric("After training", f"{history[-1]['evasion_rate_before']:.0%}",
-                      delta=f"{(history[-1]['evasion_rate_before'] - history[0]['evasion_rate_before']):.0%}",
-                      delta_color="inverse")
-            df = pd.DataFrame({"Attack success %": [h["evasion_rate_before"] * 100 for h in history]},
-                              index=[f"Round {h['generation']}" for h in history])
-            st.caption("Share of attacks that fooled the detector, per round")
-            st.line_chart(df, height=170)
-        else:
-            st.info("Run `python scripts/run_arms_race.py` to populate this.")
+            with c1:
+                st.markdown(f'<div class="metric-card"><div class="metric-value">{history[0]["evasion_rate_before"]:.0%}</div><div class="metric-label">Evasion rate (round 1)</div></div>', unsafe_allow_html=True)
+            with c2:
+                st.markdown(f'<div class="metric-card"><div class="metric-value" style="color:{SUCCESS};">{history[-1]["evasion_rate_before"]:.0%}</div><div class="metric-label">Evasion rate (final)</div></div>', unsafe_allow_html=True)
 
-# ── step 2: results ──────────────────────────────────────────────────────────
+            df = pd.DataFrame({"Evasion %": [h["evasion_rate_before"] * 100 for h in history]},
+                              index=[f"Round {h['generation']}" for h in history])
+            st.caption("📉 Attacks that fooled the detector")
+            st.line_chart(df, height=140, color=[PRIMARY])
+        else:
+            st.info("Run `python scripts/run_arms_race.py` to see evolution.")
+
+# Results
 text = st.session_state.get("email_text", "")
 if analyse and text.strip():
-    with st.spinner("Scanning for phishing indicators…"):
+    with st.spinner("🔎 Scanning for phishing indicators..."):
         prob = float(detector.predict_proba([text])[0])
         is_phish = prob >= detector.threshold
-        band, band_color = risk_band(prob)
+        band, band_color, pill_class = risk_band(prob)
 
     st.write("")
     with st.container(border=True):
-        st.markdown('<span class="step">Step 2 — the verdict</span>', unsafe_allow_html=True)
-        v1, v2 = st.columns([1.25, 1], gap="large")
+        st.markdown(f'<span class="step" style="color:{SECONDARY};">⚖️ Step 2 — The verdict</span>', unsafe_allow_html=True)
+        v1, v2 = st.columns([1.2, 1], gap="large")
         with v1:
-            color = RED if is_phish else GREEN
-            label = "⚠️  Likely phishing" if is_phish else "✓  Looks legitimate"
-            st.markdown(f'<div class="verdict" style="background:{color};">{label}</div>',
-                        unsafe_allow_html=True)
-            st.markdown(f"<div style='margin-top:.8rem'><b style='font-size:1.05rem'>Risk score "
-                        f"{prob:.0%}</b> &nbsp;<span class='pill' style='background:{band_color}22;"
-                        f"color:{band_color};'>{band}</span></div>", unsafe_allow_html=True)
+            if is_phish:
+                st.markdown('<div class="verdict phishing-verdict">⚠️ Likely phishing</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="verdict legit-verdict">✓ Looks legitimate</div>', unsafe_allow_html=True)
+
+            st.markdown(f"<div><b style='font-size:1.1rem;'>Risk score {prob:.0%}</b> "
+                        f"<span class='pill {pill_class}'>{band}</span></div>", unsafe_allow_html=True)
             st.markdown(f'<div class="meter"><div class="meter-fill" '
                         f'style="width:{prob*100:.0f}%;background:{band_color};"></div></div>',
                         unsafe_allow_html=True)
+            if model_date:
+                st.caption(f"🗓️ Model: {model_date.strftime('%b %d, %Y')}")
         with v2:
             reasons = reasons_for(text)
             if is_phish:
-                st.markdown("**Why it was flagged**")
+                st.markdown("**🚨 Why it was flagged**")
                 if reasons:
                     for title, why in reasons:
                         st.markdown(f'<div class="reason"><b>{title}</b><br><span>{why}</span></div>',
                                     unsafe_allow_html=True)
                 else:
-                    st.markdown('<div class="reason"><span>Flagged by its overall wording patterns.'
-                                '</span></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="reason"><span>Flagged by overall pattern matching.</span></div>',
+                                unsafe_allow_html=True)
             else:
-                st.markdown("**Why it looks safe**")
+                st.markdown("**✅ Why it looks safe**")
                 if reasons:
-                    st.markdown('<div class="reason"><span>A few mild signals are present, but not '
-                                'enough to flag it:</span></div>', unsafe_allow_html=True)
-                    for title, why in reasons:
+                    st.markdown('<div class="reason"><span>Mild signals present, but not enough to flag:</span></div>',
+                                unsafe_allow_html=True)
+                    for title, why in reasons[:2]:
                         st.markdown(f'<div class="reason"><b>{title}</b><br><span>{why}</span></div>',
                                     unsafe_allow_html=True)
                 else:
-                    st.markdown('<div class="reason"><span>No strong phishing signals — reads like '
-                                'ordinary text.</span></div>', unsafe_allow_html=True)
-elif analyse:
-    st.info("Please paste some email text first.")
-else:
-    st.write("")
-    st.info("👆 Press **Analyse email** above — the phishing example is preloaded, so you can try it right now.")
+                    st.markdown('<div class="reason"><span>No strong phishing signals detected.</span></div>',
+                                unsafe_allow_html=True)
 
-# ── optional: live Gmail inbox scan ──────────────────────────────────────────
+    # 🔴 Step 3: Attacker simulation — only meaningful for emails the detector flagged
+    with st.container(border=True):
+        st.markdown(f'<span class="step" style="color:{ACCENT_1};">🤖 Step 3 — Can an attacker fool it?</span>', unsafe_allow_html=True)
+        st.markdown("#### 🔴 Red team attack simulation")
+
+        if not is_phish:
+            st.info("This email wasn't flagged as phishing, so there's nothing for the attacker to "
+                    "disguise. Load the **📧 Phishing** example above to watch the Red team try to "
+                    "evade detection.")
+        else:
+            st.caption("The attacker mutates this phishing email — leetspeak, look-alike characters, "
+                       "hidden spaces — trying to push its risk below the detection line while keeping "
+                       "it readable.")
+            ATTEMPTS = 12
+            with st.spinner("Attempting to evade detection..."):
+                red = RedTeam(attempts_per_email=ATTEMPTS, seed=42)
+                report = red.attack(detector, [text])
+
+            if report.evasions:  # RedTeam only records attempts that fell below the threshold
+                ev = min(report.evasions, key=lambda e: e.new_prob)
+                st.error(f"⚠️ Attacker succeeded — risk dropped {ev.orig_prob:.0%} → {ev.new_prob:.0%}. "
+                         "In the full arms race, this evasion is fed back via `harden()` and the "
+                         "detector relearns to catch it.")
+                with st.expander("🔓 See how they did it"):
+                    st.markdown(f"**Mutation used:** `{', '.join(ev.ops)}`")
+                    st.code(ev.mutated[:400])
+            else:
+                st.success(f"✅ Detector held strong — all {ATTEMPTS} evasion attempts failed. "
+                           "This resilience is the payoff of training against the attacker over "
+                           "many rounds.")
+
+elif analyse:
+    st.info("📝 Please paste some email text above first.")
+else:
+    st.info("👆 Press **Analyse email** — a phishing example is preloaded, so you can try it right now.")
+
+# Optional: Gmail scan
 st.write("")
 with st.container(border=True):
-    st.markdown('<span class="step">Optional</span>', unsafe_allow_html=True)
-    st.markdown("#### Scan a live inbox")
-    st.caption("Connect a Gmail account to flag phishing in your real inbox. Credentials are read "
-               "from a `.env` file and never stored in the code.")
+    st.markdown(f'<span class="step" style="color:{SUCCESS};">📬 Optional</span>', unsafe_allow_html=True)
+    st.markdown("#### Scan a live Gmail inbox")
+    st.caption("Connect your Gmail to flag phishing in real emails. Credentials from `.env` only.")
     try:
         from dotenv import load_dotenv
-
         load_dotenv(ROOT / ".env")
     except ImportError:
         pass
     addr, pw = os.getenv("GMAIL_ADDRESS"), os.getenv("GMAIL_APP_PASSWORD")
     if not addr or not pw:
-        st.info("To enable: copy `.env.example` to `.env`, add your Gmail address and "
-                "[App Password](https://support.google.com/accounts/answer/185833), then reload.")
-    elif st.button("Scan my inbox", type="primary"):
+        st.info("To enable: copy `.env.example` → `.env`, add Gmail address and App Password.")
+    elif st.button("📬 Scan my inbox", type="primary"):
         from gmail_scan import fetch_latest_emails
-
-        with st.spinner("Connecting to Gmail…"):
+        with st.spinner("Connecting to Gmail..."):
             emails = fetch_latest_emails(addr, pw, os.getenv("IMAP_SERVER", "imap.gmail.com"), n=30)
         if isinstance(emails, str):
             st.error(emails)
         else:
             probs = detector.predict_proba(emails)
             df = pd.DataFrame({
-                "Verdict": ["Phishing" if p >= detector.threshold else "Legit" for p in probs],
+                "Verdict": ["🚨 Phishing" if p >= detector.threshold else "✅ Legit" for p in probs],
                 "Risk": [f"{p:.0%}" for p in probs],
-                "Email (preview)": [e[:90] for e in emails],
+                "Preview": [e[:80] for e in emails],
             })
             st.success(f"Scanned {len(df)} emails — {int((probs >= detector.threshold).sum())} flagged.")
             st.dataframe(df, use_container_width=True, hide_index=True)
-            st.download_button("Download results", df.to_csv(index=False), "scan_results.csv", "text/csv")
 
-st.markdown(f'<p class="foot">PhishArms · adversarial machine learning for email security · '
-            f'<a href="{GITHUB_URL}">GitHub</a></p>', unsafe_allow_html=True)
+st.markdown(
+    f'<p class="foot">🛡️ PhishArms · Adversarial ML for email security · '
+    f'<a href="{GITHUB_URL}" style="color:{PRIMARY};">GitHub →</a></p>',
+    unsafe_allow_html=True,
+)
