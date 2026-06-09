@@ -1,0 +1,178 @@
+[
+  {
+    "generation": 1,
+    "evasion_rate_before": 0.1833,
+    "evasion_rate_after": 0.05,
+    "evasions_found": 11,
+    "clean_accuracy": 0.9582,
+    "clean_recall": 0.9591,
+    "operator_wins": {
+      "benign_padding": 11,
+      "synonym_swap": 5,
+      "url_obfuscate": 2,
+      "homoglyph": 5,
+      "leetspeak": 3,
+      "zero_width": 2
+    },
+    "example_evasions": [
+      {
+        "original": "hardegree bang might renew mighty morphing power pecker httpwwwwaitscorecom wed 06 aug 2008 043559 0100 sluttily attractive girls",
+        "mutated": "This message was sent in accordance with our policy[.] Thank you for being a valued customer[.] We appreciate your continued trust in our services[.] Please do ",
+        "ops": [
+          "benign_padding",
+          "synonym_swap",
+          "url_obfuscate"
+        ],
+        "orig_prob": 0.985,
+        "new_prob": 0.435
+      },
+      {
+        "original": "fernando gonzalez bestlistlapostenet greetings fernando gonzalez represent top executive spain sensitive private brief ask partnership reprofile huge amount fun",
+        "mutated": "This message was sent in accordance with our policy. f\u0435rnando g\u043enz\u0430lez bestlistl\u0430postenet gre\u0435tings fernand\u043e gonzalez re\u0440resent top \u0435\u0445e\u0441utive spain sens\u0456tiv\u0435 pr",
+        "ops": [
+          "homoglyph",
+          "benign_padding"
+        ],
+        "orig_prob": 0.79,
+        "new_prob": 0.49
+      },
+      {
+        "original": "harry harkin helpbeaconcgicom teupgskemheaygloqyvhrlikqtinteupgskemheaygloqyvhrlikqtinteup watch kemheaygloqyvhrlikqtinteupgskemheaygloqyvhrlikqtinteupgskemh we",
+        "mutated": "This message was sent in accordance with our policy. Thank you for being a valued customer. We appreciate your continued trust in our services. Please do not re",
+        "ops": [
+          "benign_padding",
+          "synonym_swap"
+        ],
+        "orig_prob": 1.0,
+        "new_prob": 0.495
+      }
+    ]
+  },
+  {
+    "generation": 2,
+    "evasion_rate_before": 0.05,
+    "evasion_rate_after": 0.0167,
+    "evasions_found": 3,
+    "clean_accuracy": 0.9609,
+    "clean_recall": 0.9555,
+    "operator_wins": {
+      "leetspeak": 1,
+      "homoglyph": 3,
+      "zero_width": 1
+    },
+    "example_evasions": [
+      {
+        "original": "start trading day bang stock watch alert morning wysak petroleum wysk key energy services inc pink sheets kegs medify soiutions mfys sequoia interests corporati",
+        "mutated": "5t\u0430r7 7rad\u0456ng d\u0430y b@ng 5tock w@7\u0441h al3rt m\u043ern\u0456ng wy5ak \u044037rol3um wy5k k3\u0443 3n\u0435rgy s3rv1\u04413s 1nc p\u0456nk sh\u0435\u04357s keg5 m3dify s\u043eiu7i0ns mf\u04435 sequ01a 1nt3r35t5 c0r\u0440orati",
+        "ops": [
+          "leetspeak",
+          "homoglyph"
+        ],
+        "orig_prob": 0.795,
+        "new_prob": 0.43
+      },
+      {
+        "original": "|  \n  \n\\--DeathToSpamDeathToSpamDeathToSpam--\n\\------------------------------------------------------- This sf.net email is\nsponsored by:ThinkGeek Welcome to ge",
+        "mutated": "|  \n  \n\\--DeathToSpamDe\u0430thToSpamDeathT\u043eS\u0440\u0430m--\n\\------------------------------------------------------- This sf.n\u0435t ema\u0456l is\ns\u0440onsored by:ThinkG\u0435\u0435k Wel\u0441\u043eme to g\u0435",
+        "ops": [
+          "homoglyph"
+        ],
+        "orig_prob": 0.925,
+        "new_prob": 0.425
+      },
+      {
+        "original": "jabba5346192yahoocom 100 free porn ask click removal instructions strive never send unsolicited mail however youd rather receive future emails us click send ema",
+        "mutated": "jabb\u04305346192yah\u043eocom 100 fr\u0435e porn ask \u0441lick removal \u0456nstru\u0441t\u0456ons str\u0456ve never send unsol\u0456\u0441it\u0435d ma\u0456l however y\u043eud rather r\u0435ceive future emails us \u0441lick send ema",
+        "ops": [
+          "zero_width",
+          "homoglyph"
+        ],
+        "orig_prob": 0.925,
+        "new_prob": 0.495
+      }
+    ]
+  },
+  {
+    "generation": 3,
+    "evasion_rate_before": 0.0167,
+    "evasion_rate_after": 0.0333,
+    "evasions_found": 1,
+    "clean_accuracy": 0.96,
+    "clean_recall": 0.9591,
+    "operator_wins": {
+      "leetspeak": 1
+    },
+    "example_evasions": [
+      {
+        "original": "--0-1561587743-1028562700=:5319 Content-Type: text/plain; charset=us-ascii Hi, I am Fatimata i have been thinking to get a trust worthy person about the issure ",
+        "mutated": "--0-1561587743-1028562700=:5319 C0nt3n7-Typ3: 7ext/pla1n; chars3t=us-@5c11 Hi, I am Fa7im@t@ 1 h@v3 b3en thinking 7o g37 a 7rust w0r7hy p3rson ab0u7 7he 15sure ",
+        "ops": [
+          "leetspeak"
+        ],
+        "orig_prob": 0.835,
+        "new_prob": 0.49
+      }
+    ]
+  },
+  {
+    "generation": 4,
+    "evasion_rate_before": 0.0333,
+    "evasion_rate_after": 0.0167,
+    "evasions_found": 2,
+    "clean_accuracy": 0.9591,
+    "clean_recall": 0.9555,
+    "operator_wins": {
+      "benign_padding": 1,
+      "leetspeak": 2,
+      "homoglyph": 1
+    },
+    "example_evasions": [
+      {
+        "original": "tadalafil soft tabs great results hi new product offer c _ _ _ l _ _ soft tabs cialis soft tabs new impotence treatment drug everyone talking soft tabs acts 36 ",
+        "mutated": "We a\u0440\u0440r3ci@73 y\u043eur \u04410ntinued 7ru57 \u0456n our s3rv1c3s. Th@nk you f0r b\u04351ng a v\u0430lu3d \u0441u5t\u043em3r. tad@laf\u0456l s\u043eft 7\u0430bs gr3@7 r3sults h1 new product 0ff3r c _ _ _ l _ _ ",
+        "ops": [
+          "benign_padding",
+          "leetspeak",
+          "homoglyph"
+        ],
+        "orig_prob": 0.93,
+        "new_prob": 0.495
+      },
+      {
+        "original": "|  \n  \n\\--DeathToSpamDeathToSpamDeathToSpam--\n\\------------------------------------------------------- This sf.net email is\nsponsored by:ThinkGeek Welcome to ge",
+        "mutated": "|  \n  \n\\--De@th70Sp@mDeathT05pamDea7h7oSpam--\n\\------------------------------------------------------- Th1s 5f.n37 ema11 is\nspons0red by:7h1nkG3ek Welc0m3 t0 g3",
+        "ops": [
+          "leetspeak"
+        ],
+        "orig_prob": 0.935,
+        "new_prob": 0.48
+      }
+    ]
+  },
+  {
+    "generation": 5,
+    "evasion_rate_before": 0.0167,
+    "evasion_rate_after": 0.0,
+    "evasions_found": 1,
+    "clean_accuracy": 0.96,
+    "clean_recall": 0.9555,
+    "operator_wins": {
+      "synonym_swap": 1,
+      "leetspeak": 1,
+      "zero_width": 1
+    },
+    "example_evasions": [
+      {
+        "original": "daily top 10 corneliusgnitoohmeritdirectcom daily top 10 cnncom top videos stories aug 1 2008 358 pm edt top 10 videos 1 montauk monster httpwwwcnncomvideopartn",
+        "mutated": "daily 7op 10 c0rneliusgni7oohmeri7dir3c7com daily top 10 cnnc0m 7op v1deos stories @ug 1 2008 358 pm 3dt 70p 10 v1d3o5 1 m0ntauk monster ht7pwwwcnnc0mvid3op@rtn",
+        "ops": [
+          "synonym_swap",
+          "leetspeak",
+          "zero_width"
+        ],
+        "orig_prob": 1.0,
+        "new_prob": 0.485
+      }
+    ]
+  }
+]
