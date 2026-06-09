@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import random
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -23,7 +22,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))  # for gmail_scan
 
 from phisharms.detector import PhishingDetector  # noqa: E402
 from phisharms.features import _SPAM_KEYWORDS, _URGENCY_WORDS, extract_features  # noqa: E402
-from phisharms.mutations import OPERATORS, apply_chain  # noqa: E402
 
 GITHUB_URL = "https://github.com/Muskan-2504/phishing-arms-race"
 RED, GREEN, AMBER, INK = "#D64550", "#2A9D8F", "#F79009", "#111827"
@@ -43,19 +41,12 @@ st.markdown(
       .brand {{font-size: 1.9rem; font-weight: 800; letter-spacing:-.02em; margin:0;}}
       .tagline {{color:#6B7280; margin:.15rem 0 0 0; font-size:1.02rem;}}
       .step {{font-size:.78rem; font-weight:700; letter-spacing:.06em; color:#9098A4; text-transform:uppercase;}}
-      .hard-badge {{background:linear-gradient(90deg,#EEF4FF,#F5F8FF); border:1px solid #C7D7FE;
-                    color:#1E40AF; padding:.7rem 1rem; border-radius:12px; font-size:.95rem;}}
       .verdict {{padding:1.1rem 1.3rem; border-radius:12px; font-weight:800; font-size:1.45rem; color:#fff;}}
       .pill {{display:inline-block; padding:.18rem .7rem; border-radius:999px; font-size:.8rem; font-weight:700;}}
       .meter {{height:18px; width:100%; background:#EEF1F6; border-radius:999px; overflow:hidden; margin-top:.3rem;}}
       .meter-fill {{height:100%; border-radius:999px;}}
       .reason {{padding:.5rem 0; border-bottom:1px solid #F0F2F5;}}
       .reason b {{color:{INK};}} .reason span {{color:#6B7280; font-size:.9rem;}}
-      .atk {{display:flex; justify-content:space-between; align-items:center; padding:.55rem .85rem;
-             border-radius:9px; margin:.32rem 0; font-size:.93rem;}}
-      .atk.fail {{background:#ECFDF3; border:1px solid #D1FADF;}}
-      .atk.win  {{background:#FEECEB; border:1px solid #FDA29B;}}
-      .atk .lbl {{font-weight:700; color:{INK};}}
       .foot {{color:#9098A4; font-size:.85rem; text-align:center; margin-top:1.4rem;}}
     </style>
     """,
@@ -122,22 +113,6 @@ def reasons_for(text: str) -> list[tuple[str, str]]:
     return out
 
 
-def attack_breakdown(detector, text: str, tries: int = 6):
-    rng = random.Random(0)
-    orig = float(detector.predict_proba([text])[0])
-    rows = []
-    for name in OPERATORS:
-        best, best_text = orig, text
-        for _ in range(tries):
-            m = apply_chain(text, [name], rng)
-            p = float(detector.predict_proba([m])[0])
-            if p < best:
-                best, best_text = p, m
-        rows.append({"op": name.replace("_", " "), "orig": orig, "new": best,
-                     "evaded": best < detector.threshold, "text": best_text})
-    return rows
-
-
 def risk_band(prob: float) -> tuple[str, str]:
     if prob >= 0.70:
         return "High risk", RED
@@ -146,7 +121,7 @@ def risk_band(prob: float) -> tuple[str, str]:
     return "Low risk", GREEN
 
 
-detector, trained_at = load_detector()
+detector, _ = load_detector()
 history = load_history()
 
 # ── header ─────────────────────────────────────────────────────────────────
@@ -163,14 +138,6 @@ with hr:
 if detector is None:
     st.warning("No trained model found. Run `python scripts/train_baseline.py` first, then reload.")
     st.stop()
-
-if history:
-    g0, gN = history[0]["evasion_rate_before"], history[-1]["evasion_rate_before"]
-    when = f" · updated {trained_at:%d %b %Y}" if trained_at else ""
-    st.markdown(
-        f'<div class="hard-badge">🛡️ <b>Hardened over {len(history)} rounds</b> — attacks that fooled '
-        f'it fell from <b>{g0:.0%}</b> to <b>{gN:.0%}</b> '
-        f'(<b style="color:{GREEN}">−{g0 - gN:.0%}</b>){when}</div>', unsafe_allow_html=True)
 
 st.write("")
 
@@ -235,42 +202,27 @@ if analyse and text.strip():
                         f'style="width:{prob*100:.0f}%;background:{band_color};"></div></div>',
                         unsafe_allow_html=True)
         with v2:
-            st.markdown("**Why this verdict?**")
             reasons = reasons_for(text)
-            if reasons:
-                for title, why in reasons:
-                    st.markdown(f'<div class="reason"><b>{title}</b><br><span>{why}</span></div>',
-                                unsafe_allow_html=True)
+            if is_phish:
+                st.markdown("**Why it was flagged**")
+                if reasons:
+                    for title, why in reasons:
+                        st.markdown(f'<div class="reason"><b>{title}</b><br><span>{why}</span></div>',
+                                    unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="reason"><span>Flagged by its overall wording patterns.'
+                                '</span></div>', unsafe_allow_html=True)
             else:
-                st.markdown('<div class="reason"><span>No strong phishing signals — reads like '
-                            'ordinary text.</span></div>', unsafe_allow_html=True)
-
-    # ── step 3: the differentiator ──────────────────────────────────────────
-    with st.container(border=True):
-        st.markdown('<span class="step">Step 3 — the twist</span>', unsafe_allow_html=True)
-        st.markdown("#### Red-team attack simulation")
-        st.caption("The attacker mutates this email six ways, trying to push the risk below the "
-                   "detection line while keeping it readable.")
-        with st.spinner("Attacker probing for weaknesses…"):
-            rows = attack_breakdown(detector, text)
-        evaded = [r for r in rows if r["evaded"]]
-        blocked = len(rows) - len(evaded)
-        if not evaded:
-            st.success(f"🛡️ Detector blocked **all {len(rows)} attacks**. "
-                       "This resilience is the payoff of training against the attacker.")
-        else:
-            st.warning(f"{blocked} of {len(rows)} attacks blocked, {len(evaded)} slipped through — "
-                       "feeding these back via `harden()` is how the arms race closes such gaps.")
-        for r in rows:
-            cls = "win" if r["evaded"] else "fail"
-            mark, tag = ("✗", "EVADED") if r["evaded"] else ("✓", "blocked")
-            st.markdown(
-                f'<div class="atk {cls}"><span class="lbl">{mark}&nbsp; {r["op"]}</span>'
-                f'<span>risk {r["orig"]:.0%} → <b>{r["new"]:.0%}</b> &nbsp;·&nbsp; {tag}</span></div>',
-                unsafe_allow_html=True)
-        if evaded:
-            with st.expander("See a disguised version that evaded"):
-                st.code(evaded[0]["text"][:400], language=None)
+                st.markdown("**Why it looks safe**")
+                if reasons:
+                    st.markdown('<div class="reason"><span>A few mild signals are present, but not '
+                                'enough to flag it:</span></div>', unsafe_allow_html=True)
+                    for title, why in reasons:
+                        st.markdown(f'<div class="reason"><b>{title}</b><br><span>{why}</span></div>',
+                                    unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="reason"><span>No strong phishing signals — reads like '
+                                'ordinary text.</span></div>', unsafe_allow_html=True)
 elif analyse:
     st.info("Please paste some email text first.")
 else:
