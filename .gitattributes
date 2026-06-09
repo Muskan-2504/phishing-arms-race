@@ -1,0 +1,7 @@
+# Normalise line endings: LF in the repo, native in the working tree.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.joblib binary
+*.pkl binary
