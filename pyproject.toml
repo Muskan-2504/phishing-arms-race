@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phisharms"
+version = "1.0.0"
+description = "A self-evolving phishing detection arms race: Red attacker vs Blue detector, co-evolving over generations."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Nikunj Bhadwa" }]
+keywords = ["phishing", "adversarial-ml", "cybersecurity", "machine-learning", "email-security"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
