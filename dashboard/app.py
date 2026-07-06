@@ -88,10 +88,22 @@ st.markdown(
 
 @st.cache_resource
 def load_detector():
+    # Prefer a committed/pretrained model…
     for name in ("detector_hardened.joblib", "detector.joblib"):
         p = ROOT / "models" / name
         if p.exists():
-            return PhishingDetector.load(p), datetime.fromtimestamp(p.stat().st_mtime)
+            try:
+                return PhishingDetector.load(p), datetime.fromtimestamp(p.stat().st_mtime)
+            except Exception:
+                pass  # version mismatch etc. — fall through to training
+    # …otherwise train one from the bundled sample so a fresh deploy still works.
+    sample = ROOT / "data" / "sample_emails.csv"
+    if sample.exists():
+        from phisharms.data import load_dataset
+
+        df = load_dataset(sample)
+        det = PhishingDetector().train(df["text"].tolist(), df["label"].tolist())
+        return det, None
     return None, None
 
 
