@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 
 def _clean(raw: str) -> str:
     try:
-        text = BeautifulSoup(raw, "lxml").get_text()
+        text = BeautifulSoup(raw, "html.parser").get_text()
         return re.sub(r"\s+", " ", text).strip()
     except Exception:
         return raw.strip()
