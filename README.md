@@ -2,9 +2,12 @@
 
 > A phishing detector that **trains against an adversary that's trying to beat it** — and gets stronger every generation.
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://phishing-arms-race.streamlit.app/)
 [![CI](https://github.com/Muskan-2504/phishing-arms-race/actions/workflows/ci.yml/badge.svg)](https://github.com/Muskan-2504/phishing-arms-race/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
+**▶ Try it live:** **[phishing-arms-race.streamlit.app](https://phishing-arms-race.streamlit.app/)** — paste an email, get a verdict with plain-language reasons, and watch the attacker try (and usually fail) to evade the hardened detector.
 
 Most phishing classifiers are trained once on a fixed dataset and quietly rot the
 moment attackers change tactics. **PhishArms** flips that. It pits two agents
@@ -109,14 +112,20 @@ streamlit run dashboard/app.py
 The repo ships with a balanced 4,500-email sample so everything runs out of the
 box — no large downloads required.
 
-### Interactive control room
+### Interactive dashboard
 
-`streamlit run dashboard/app.py` opens three tabs:
+`streamlit run dashboard/app.py` (or the [live app](https://phishing-arms-race.streamlit.app/))
+opens a clean, single-page control room:
 
-- **⚔️ Arms Race** — the evasion curve, operator phylogeny, and example evasions.
-- **🔬 Live Probe** — paste any email; the detector scores it, then the Red team
-  tries to evade it live and shows you the mutation that worked.
-- **📬 Gmail Scan** — scan a real inbox over IMAP (credentials via `.env`).
+- **Check an email** — paste any email, or load a one-click example / quick-test
+  scam. You get a colour-coded verdict, a risk-score meter, and **plain-language
+  reasons** for the call (e.g. *"Shortened link — hides the real destination"*).
+- **Attacker simulation** — for flagged emails, the Red team mutates the message
+  live and reports whether it **evaded** the detector or was **blocked**.
+- **Detector track record** — the evasion-rate-per-round chart, showing the model
+  hardening across the arms race.
+- **Live Gmail scan** *(optional)* — flag phishing in a real inbox over IMAP
+  (credentials via `.env`).
 
 ---
 
